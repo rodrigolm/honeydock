@@ -18,6 +18,7 @@ CONN_LOG_FILE_PATH = "/var/log/kern.log"
 CONN_LOG_CONTENT = open(CONN_LOG_FILE_PATH, 'r').readlines()
 CONN_LOG_LEN = len(CONN_LOG_CONTENT)
 INTERFACE = "eth0"
+CURRENT_PORT = "22222"
 
 # Pyinotify
 
@@ -25,7 +26,7 @@ wm = pyinotify.WatchManager()
 mask = pyinotify.IN_MODIFY
 
 # Open database connection
-CONN_DB = MySQLdb.connect("localhost",user,password,db)
+CONN_DB = MySQLdb.connect("localhost", user, password, db)
 CONN = CONN_DB.cursor()
 
 def banner():
@@ -126,6 +127,7 @@ class EventHandler (pyinotify.ProcessEvent):
     def process_IN_MODIFY(self, event):
         global CONN_LOG_CONTENT
         global CONN_LOG_LEN
+        global CURRENT_PORT
 
         # print "[INFO] Log file changed: ", event.pathname
 
@@ -158,18 +160,24 @@ class EventHandler (pyinotify.ProcessEvent):
                     logger.debug("Getting an available docker.")
                     port = available_container()
 
-                    logger.info("Attaching this IP to a docker instance")
-                    # [PENDENTE] IPTABLES AQUI
+                    logger.info("Initiating proccess of attaching this IP to a docker instance")
+                    logger.info("Removing main rule")
+                    subprocess.Popen(["iptables -t nat -D PREROUTING -p tcp -d {local_ip} --dport 22 -j DNAT --to {local_ip}:{current_port}".format(local_ip=get_local_ip(), current_port=CURRENT_PORT)], stdout=subprocess.PIPE, shell=True)
+                    logger.info("Attaching this IP to container")
+                    subprocess.Popen(["iptables -t nat -A PREROUTING -p tcp -s {attacker_ip} -d {local_ip} --dport 22 -j DNAT --to {local_ip}:{current_port}".format(attacker_ip=attacker_ip, local_ip=get_local_ip(), current_port=CURRENT_PORT)], stdout=subprocess.PIPE, shell=True)
+
                     set_unavailable_port(port)
 
                     logger.info("Creating a new docker instance")
                     next_port = available_port()
-                    # CRIAR O DOCKER EM UMA NOVA PORTA
                     create_container(next_port, "22", "honeypot-ssh")
                             
                     logger.info("New docker container created on port {port}".format(port=next_port))
-                    # [PENDENTE] ADICIONA O NOVO DOCKER AO BANCO DE DADOS
-                    # QUALQUER OUTRO IP DEVE SER DIRECIONADO A ESSE NOVO DOCKER
+                    logger.info("Updating current port")
+                    CURRENT_PORT = next_port
+                    logger.info("Creating main rule to new docker")
+                    subprocess.Popen(["iptables -t nat -A PREROUTING -p tcp -d {local_ip} --dport 22 -j DNAT --to {local_ip}:{current_port}".format(local_ip=get_local_ip(), current_port=CURRENT_PORT)], stdout=subprocess.PIPE, shell=True)
+                    logger.info("Done!")
                 else:
                     logger.info("The IP: {} it's  from a returning attacker. No action required".format(DST))
                     send_email_alert(attacker_ip, 2)
@@ -202,12 +210,12 @@ logger.info("Starting base docker." )
 docker_run = subprocess.Popen(["docker run -d -p 22222:22 honeypot-ssh"], stdout=subprocess.PIPE, shell=True)
 (out, err) = docker_run.communicate()
 container_id = out[:12]
-add_container(container_id, 22222, 1)
+add_container(container_id, CURRENT_PORT, 1)
 
 logger.info("SSH base docker has started.")
 logger.info("Creating initial iptables rules...")
 # LEMBRAR DE DEIXAR ESSE IP DA MAQUINA DINAMICO/CONFIGURAVEL
-subprocess.Popen(["iptables -t nat -A PREROUTING -p tcp -d {local_ip} --dport 22 -j DNAT --to {local_ip}:22222".format(local_ip=get_local_ip())], stdout=subprocess.PIPE, shell=True)
+subprocess.Popen(["iptables -t nat -A PREROUTING -p tcp -d {local_ip} --dport 22 -j DNAT --to {local_ip}:{current_port}".format(local_ip=get_local_ip(), current_port=CURRENT_PORT)], stdout=subprocess.PIPE, shell=True)
 # LEMBRAR DE DEIXAR A INTERFACE DA MAQUINA DINAMICA/CONFIGURAVEL (ens33)
 subprocess.Popen(["iptables -A INPUT -i {interface} -p tcp --dport 22 -m state --state NEW,ESTABLISHED -j ACCEPT".format(interface=INTERFACE)], stdout=subprocess.PIPE, shell=True)
 subprocess.Popen(["iptables -A OUTPUT -o {interface} -p tcp --sport 22 -m state --state ESTABLISHED -j ACCEPT".format(interface=INTERFACE)], stdout=subprocess.PIPE, shell=True)
