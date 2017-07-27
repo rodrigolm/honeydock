@@ -25,7 +25,7 @@ wm = pyinotify.WatchManager()
 mask = pyinotify.IN_MODIFY
 
 # Open database connection
-CONN_DB = MySQLdb.connect("localhost","rodrigo","wtbMM2mX9JYaJJJTMY2Q123","honeydock" )
+CONN_DB = MySQLdb.connect("localhost",user,password,db)
 CONN = CONN_DB.cursor()
 
 def banner():
