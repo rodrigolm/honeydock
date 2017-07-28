@@ -82,7 +82,7 @@ def add_attacker(ip):
         CONN_DB.rollback()
 
 def create_container(src_port, dst_port, image_name):
-    docker_run = subprocess.Popen(["docker run -d -p {src}:{dst} {image}".format(src=src_port, dst=dst_port, image=image_name)], stdout=subprocess.PIPE, shell=True)
+    docker_run = subprocess.Popen(["docker run -d -p {src}:{dst} -v /var/log {image} /usr/sbin/sshd -D".format(src=src_port, dst=dst_port, image=image_name)], stdout=subprocess.PIPE, shell=True)
     (out, err) = docker_run.communicate()
     container_id = out[:12]
     add_container(container_id, int(src_port), 1)
@@ -100,7 +100,7 @@ def available_container():
         return str(port[0])
     else:
         port = str(available_port())
-        create_container(port, str(22), "honeypot-ssh")
+        create_container(port, str(22), "rodrigolm/honeydock-ssh")
         return port
 
 def available_port():
@@ -170,7 +170,7 @@ class EventHandler (pyinotify.ProcessEvent):
 
                     logger.info("Creating a new docker instance")
                     next_port = available_port()
-                    create_container(next_port, "22", "honeypot-ssh")
+                    create_container(next_port, "22", "rodrigolm/honeydock-ssh")
                             
                     logger.info("New docker container created on port {port}".format(port=next_port))
                     logger.info("Updating current port")
@@ -207,7 +207,7 @@ banner()
 logger.info("Initializing...")
 logger.info("Starting base docker." )
 
-docker_run = subprocess.Popen(["docker run -d -p 22222:22 honeypot-ssh"], stdout=subprocess.PIPE, shell=True)
+docker_run = subprocess.Popen(["docker run -d -p 22222:22 -v /var/log rodrigolm/honeydock-ssh  /usr/sbin/sshd -D"], stdout=subprocess.PIPE, shell=True)
 (out, err) = docker_run.communicate()
 container_id = out[:12]
 add_container(container_id, CURRENT_PORT, 1)
