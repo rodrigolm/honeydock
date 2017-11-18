@@ -1,3 +1,6 @@
+build-honeypot:
+	docker build honeypot -t honeydock
+
 up-elk:
 	docker-compose -f docker-compose-elk.yml up -d
 
@@ -5,7 +8,7 @@ up-filebeat:
 	docker-compose up -d
 
 up-honeypot:
-	docker run --rm -it -p 2222:22 --name honeypot rodrigolm/honeydock-ssh
+	docker run --rm -p 2222:22 honeydock
 
 down-elk:
 	docker-compose -f docker-compose-elk.yml down
