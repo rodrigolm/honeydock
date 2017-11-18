@@ -9,8 +9,6 @@ services:
       - ./var/lib/docker/containers:/hostfs/var/lib/docker/containers:rw
     networks:
       - honeydock
-    depends_on:
-      - logstash
 
 networks:
   honeydock:
