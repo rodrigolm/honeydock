@@ -1,7 +1,7 @@
 filebeat.prospectors:
 - input_type: log
   paths:
-    - /hostfs/var/lib/docker/containers/*.log
+    - /hostfs/var/lib/docker/containers/*/*.log
   document_type: docker
   json.message_key: log
 

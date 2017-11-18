@@ -1,22 +1,22 @@
-build-honeypot:
+honeypot-build:
 	docker build honeypot -t honeydock
 
-up-elk:
-	docker-compose -f docker-compose-elk.yml up -d
+elk-up:
+	docker-compose -f docker-compose-elk.yml up
 
-up-filebeat:
-	docker-compose up -d
+filebeat-up:
+	docker-compose up
 
-up-honeypot:
-	docker run --rm -p 2222:22 honeydock
+honeypot-up:
+	docker run --rm -d -p 2222:22 honeydock
 
-down-elk:
+elk-down:
 	docker-compose -f docker-compose-elk.yml down
 
-down-filebeat:
+filebeat-down:
 	docker-compose down
 
-bash-filebeat:
+filebeat-bash:
 	docker exec -it honeydock-filebeat /bin/bash
 
 clean:

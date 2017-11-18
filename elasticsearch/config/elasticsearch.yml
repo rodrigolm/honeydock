@@ -1,4 +1,12 @@
-cluster.name: "elk-cluster"
+## Docker defaults
+cluster.name: "honeydock-elk"
 network.host: "0.0.0.0"
 discovery.type: single-node
+
+## Disabling X-Pack Features
+## https://www.elastic.co/guide/en/x-pack/current/installing-xpack.html
+## https://www.elastic.co/guide/en/x-pack/current/xpack-settings.html
+xpack.ml.enabled: false
+xpack.monitoring.enabled: false
 xpack.security.enabled: false
+xpack.watcher.enabled: false

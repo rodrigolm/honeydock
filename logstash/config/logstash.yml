@@ -1,2 +1,8 @@
+## Docker defaults
 http.host: "0.0.0.0"
 path.config: /usr/share/logstash/pipeline
+
+## Disabling X-Pack Features
+## https://www.elastic.co/guide/en/x-pack/current/installing-xpack.html
+## https://www.elastic.co/guide/en/x-pack/current/xpack-settings.html
+xpack.monitoring.enabled: false
