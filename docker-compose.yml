@@ -47,7 +47,7 @@ services:
     container_name: honeydock-filebeat
     volumes:
       - ./filebeat/config/filebeat.yml:/usr/share/filebeat/filebeat.yml
-      - logdata:/honeydock/logs
+      - ./var/lib/docker/containers:/hostfs/var/lib/docker/containers:rw
     networks:
       - honeydock
     depends_on:
@@ -56,7 +56,6 @@ services:
 volumes:
   esdata:
     driver: local
-  logdata:
 
 networks:
   honeydock:

@@ -1,8 +1,9 @@
 filebeat.prospectors:
 - input_type: log
-  scan_frequency: 10s
   paths:
-    - /honeydock/logs/*.log
+    - /hostfs/var/lib/docker/containers/*.log
+  document_type: docker
+  json.message_key: log
 
 output.logstash:
-  hosts: ["logstash:5044"]
+  hosts: ["192.168.0.26:5044"]
