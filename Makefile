@@ -1,14 +1,20 @@
-up:
-	docker-compose up
+up-elk:
+	docker-compose -f docker-compose-elk.yml up -d
 
-down:
+up-filebeat:
+	docker-compose up -d
+
+up-honeypot:
+	docker run --rm -it -p 2222:22 --name honeypot rodrigolm/honeydock-ssh
+
+down-elk:
+	docker-compose -f docker-compose-elk.yml down
+
+down-filebeat:
 	docker-compose down
 
 bash-filebeat:
 	docker exec -it honeydock-filebeat /bin/bash
-
-up-honeypot:
-	docker run --rm -it --log-driver syslog -p 2222:22 --name honeypot rodrigolm/honeydock-ssh
 
 clean:
 	docker stop $$(docker ps -aq); docker rm $$(docker ps -aq); docker rmi $$(docker images -f dangling=true -q)
