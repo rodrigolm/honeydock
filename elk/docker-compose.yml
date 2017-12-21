@@ -15,6 +15,21 @@ services:
     networks:
       - honeydock
 
+  logstash:
+    image: docker.elastic.co/logstash/logstash:6.0.0
+    container_name: logstash-honeydock
+    environment:
+      LS_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes:
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
+      - ./logstash/pipeline/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    ports:
+      - 5000:5000
+    networks:
+      - honeydock
+    depends_on:
+      - elasticsearch
+
   kibana:
     image: docker.elastic.co/kibana/kibana:6.0.0
     container_name: kibana-honeydock

@@ -3,13 +3,14 @@
 import os
 import time
 import logging
-import subprocess
+from subprocess import Popen, PIPE, CalledProcessError
 import netifaces as ni
 
 logger = logging.getLogger()
 
 interface = ''
 local_ip = ''
+
 
 def banner():
     subprocess.call("clear", shell=True)
@@ -24,11 +25,13 @@ def banner():
     print("                          |___/                   v0.1 ")
     print()
 
+
 def get_interface():
     global interface
 
     interface = [i for i in ni.interfaces() if i not in ['lo', 'docker0']][0]
     print("Interface:", interface)
+
 
 def get_local_ip():
     global interface
@@ -37,51 +40,65 @@ def get_local_ip():
     local_ip = ni.ifaddresses(interface)[ni.AF_INET][0]['addr']
     print("Local IP:", local_ip)
 
-def docker_stop(container_list):
-    command = "docker stop"
+
+def call(cmd):
+    date = time.strftime("%d/%m/%Y - %H:%M:%S")
+    if isinstance(cmd, str):
+        cmd = cmd.split()
 
     try:
-        subprocess.call(command.split() + container_list)
-        print("Containers stopped.")
-    except subprocess.CalledProcessError:
-        now = time.strftime("[%d/%m/%Y - %H:%M:%S]")
-        logger.exception("{} error stopping containers".format(now))
+        out, err = Popen(cmd, stdout=PIPE, stderr=PIPE).communicate()
+    except CalledProcessError as err:
+        logger.exception("[{date}] {err}".format(date=date, err=err))
+
+    if err:
+        logger.error("[{date}] {err}".format(err=err))
+        return None
+    return out.decode('utf-8') or True
+
+
+def docker_stop(container_list):
+    command = "docker stop"
+    command = command.split() + container_list
+
+    out = call(command)
+    if out:
+        print("Containers stopped!\n", out)
+    else:
+        print("Error stopping containers!")
+
 
 def docker_rm(container_list):
     command = "docker rm"
+    command = command.split() + container_list
 
-    try:
-        subprocess.call(command.split() + container_list)
-        print("Containers removed.")
-    except subprocess.CalledProcessError:
-        now = time.strftime("[%d/%m/%Y - %H:%M:%S]")
-        logger.exception("{} error removing containers".format(now))
+    out = call(command)
+    if out:
+        print("Containers removed!\n", out)
+    else:
+        print("Error removing containers!")
+
 
 def docker_cleaner():
     command = "docker ps -aq"
-
     print("Stopping all running dockers...")
 
-    try:
-        container_list = subprocess.check_output(command.split())
-        container_list = container_list.decode('utf-8')
-        if container_list:
-            container_list = container_list.split()
-            docker_stop(container_list)
-            docker_rm(container_list)
-    except subprocess.CalledProcessError:
-        now = time.strftime("[%d/%m/%Y - %H:%M:%S]")
-        logger.exception("{} error getting containers id".format(now))
+    out = call(command)
+    if out:
+        container_list = out.split()
+        docker_stop(container_list)
+        docker_rm(container_list)
+    else:
+        print("Error getting containers id!")
+
 
 def iptable_d(rule, command):
     print(rule)
-
-    try:
-        subprocess.call(command.split(), stderr=subprocess.STDOUT, shell=True)
-        print("{} removed.".format(rule))
-    except subprocess.CalledProcessError:
-        now = time.strftime("[%d/%m/%Y - %H:%M:%S]")
-        logger.exception("{date} error removing {rule}".format(date=now, rule=rule))
+    out = call(command)
+    if out:
+        print("{} removed!".format(rule))
+    else:
+        print("Error removing {rule}!".format(rule=rule))
 
 
 def iptables_cleaner():
@@ -106,7 +123,7 @@ def iptables_cleaner():
         "Rule #4: FLAGS",
         "iptables -D OUTPUT -p tcp --tcp-flags SYN,ACK SYN,ACK -j LOG --log-prefix \"Connection established: \" "
     )
-    print("Rules cleared.")
+    print("Rules cleared!")
 
 
 def honeydock_cleaner():
