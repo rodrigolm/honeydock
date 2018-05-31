@@ -1,7 +1,0 @@
-filebeat.prospectors:
-- type: log
-  enabled: true
-    - /hostfs/var/lib/docker/containers/*/*.log
-
-output.logstash:
-  hosts: ["192.168.0.26:5044"]
