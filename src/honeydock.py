@@ -169,18 +169,17 @@ class EventHandler(pyinotify.ProcessEvent):
                     logger.info("Creating a new docker instance")
                     container = create_container()
                     CURRENT_CONTAINER = container
-                    if container:
-                        host_port = docker_host_port(container)[HONEYPOT_DOCKER_SERVICE_PORT]
-                        logger.info(f"New docker container created on port { host_port }")
-                        logger.info("Creating main rule to new docker")
-                        command(
-                            "iptables -t nat -A PREROUTING -p tcp "
-                            f"-d { local_ip } "
-                            f"--dport { HONEYPOT_SERVICE_PORT } "
-                            "-j DNAT "
-                            f"--to { local_ip }:{ host_port }"
-                        )
-                        logger.info("Done!")
+                    host_port = docker_host_port(container)[HONEYPOT_DOCKER_SERVICE_PORT]
+                    logger.info(f"New docker container created on port { host_port }")
+                    logger.info("Creating main rule to new docker")
+                    command(
+                        "iptables -t nat -A PREROUTING -p tcp "
+                        f"-d { local_ip } "
+                        f"--dport { HONEYPOT_SERVICE_PORT } "
+                        "-j DNAT "
+                        f"--to { local_ip }:{ host_port }"
+                    )
+                    logger.info("Done!")
                 else:
                     logger.info(
                         f"The IP: { attacker_ip } it's from a returning attacker. "
@@ -190,12 +189,14 @@ class EventHandler(pyinotify.ProcessEvent):
 
 
 if __name__ == "__main__":
-    banner()
+    global CURRENT_CONTAINER
 
+    banner()
     logger.info("Initializing...")
 
     logger.info("Starting base docker")
     container = create_container()
+    CURRENT_CONTAINER = container
     host_port = docker_host_port(container)[HONEYPOT_DOCKER_SERVICE_PORT]
     logger.info("SSH base docker has started")
 
