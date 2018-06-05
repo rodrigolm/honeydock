@@ -5,16 +5,17 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.2.4
     container_name: elasticsearch
     environment:
-      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+      node.name: elasticsearch
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
       LOGSPOUT: ignore
     volumes:
     # - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
       - data:/usr/share/elasticsearch/data
+    networks:
+      - honeydock
     ports:
       - 9200:9200
       - 9300:9300
-    networks:
-      - honeydock
 
   logstash:
     image: docker.elastic.co/logstash/logstash-oss:6.2.4
@@ -23,12 +24,12 @@ services:
       LOGSPOUT: ignore
     volumes:
     # - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
-      - ./logstash/pipeline/:/usr/share/logstash/pipeline/
       - ./logstash/patterns/:/usr/share/logstash/patterns/
-    ports:
-      - 5000:5000
+      - ./logstash/pipeline/:/usr/share/logstash/pipeline/
     networks:
       - honeydock
+    ports:
+      - 5000:5000
     depends_on:
       - elasticsearch
 
@@ -39,10 +40,10 @@ services:
       LOGSPOUT: ignore
     # volumes:
     # - ./kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml
-    ports:
-      - 5601:5601
     networks:
       - honeydock
+    ports:
+      - 5601:5601
     depends_on:
       - elasticsearch
 

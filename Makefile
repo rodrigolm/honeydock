@@ -49,9 +49,19 @@ cowrie:
 		--name cowrie \
 		--rm \
 		-e "DOCKER=yes" \
-		-P \
+		-p 2222:2222 \
 		-v $(PROJECT_PATH)/honeypot/cowrie/cowrie.cfg:/cowrie/cowrie-git/cowrie.cfg \
 		cowrie/cowrie
+
+portainer:
+	docker run \
+		--name portainer \
+		--rm \
+		-d \
+		-p 9000:9000 \
+		-v /var/run/docker.sock:/var/run/docker.sock \
+		-v portainer_data:/data \
+		portainer/portainer
 
 clean:
 	docker stop $$(docker ps -qa)

@@ -1,0 +1,18 @@
+[
+  {
+    "_id": "9189cef0-6698-11e8-86d1-813a7571e879",
+    "_type": "dashboard",
+    "_source": {
+      "title": "honeydock",
+      "hits": 0,
+      "description": "",
+      "panelsJSON": "[{\"panelIndex\":\"2\",\"gridData\":{\"x\":6,\"y\":3,\"w\":6,\"h\":3,\"i\":\"2\"},\"id\":\"e35a7050-6697-11e8-86d1-813a7571e879\",\"type\":\"visualization\",\"version\":\"6.2.4\"},{\"panelIndex\":\"3\",\"gridData\":{\"x\":0,\"y\":3,\"w\":6,\"h\":3,\"i\":\"3\"},\"id\":\"825db660-6695-11e8-86d1-813a7571e879\",\"type\":\"visualization\",\"version\":\"6.2.4\"},{\"panelIndex\":\"5\",\"gridData\":{\"x\":6,\"y\":0,\"w\":6,\"h\":3,\"i\":\"5\"},\"id\":\"110fd8f0-669d-11e8-86d1-813a7571e879\",\"type\":\"visualization\",\"version\":\"6.2.4\",\"embeddableConfig\":{\"vis\":{\"colors\":{\"not found\":\"#E24D42\",\"found\":\"#1F78C1\"}}}},{\"panelIndex\":\"6\",\"gridData\":{\"x\":0,\"y\":0,\"w\":6,\"h\":3,\"i\":\"6\"},\"version\":\"6.2.4\",\"type\":\"visualization\",\"id\":\"80bb3050-669d-11e8-86d1-813a7571e879\"}]",
+      "optionsJSON": "{\"darkTheme\":false,\"hidePanelTitles\":false,\"useMargins\":true}",
+      "version": 1,
+      "timeRestore": false,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"query\":{\"language\":\"lucene\",\"query\":\"\"},\"filter\":[],\"highlightAll\":true,\"version\":true}"
+      }
+    }
+  }
+]
