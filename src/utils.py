@@ -3,7 +3,7 @@ import netifaces
 import time
 
 from subprocess import Popen, PIPE, CalledProcessError
-from typing import List, Union
+from typing import List, Tuple, Union
 
 # Logging
 logger = logging.getLogger(__name__)
@@ -30,10 +30,11 @@ def banner():
 def command(
     cmd: Union[str, List[str]],
     cmd_list: List[str]=list()
-) -> Union[str, bool]:
+) -> Tuple[str, bool]:
     """Calls a shell command
 
     :param cmd: command
+    :param cmd_list: extra command list
     :return:
     """
 
@@ -44,13 +45,13 @@ def command(
     print(f"cmd: { cmd }")
     try:
         out, err = Popen(cmd, stdout=PIPE, stderr=PIPE).communicate()
-    except CalledProcessError as err:
-        logger.exception(f"[{ date }] { err }")
+    except CalledProcessError as e:
+        logger.exception(f"[{ date }] { e }")
 
     if err:
         logger.error(f"[{ date }] { err }")
-        return False
-    return out.decode('utf-8')
+        return "", False
+    return out.decode('utf-8'), True
 
 
 def interfaces() -> List[str]:
@@ -65,11 +66,7 @@ def iptables_cleaner() -> None:
     """Remove all rules"""
 
     logger.info("Cleaning iptables rules...")
-    command("iptables -P INPUT ACCEPT")
-    command("iptables -P OUTPUT ACCEPT")
     command("iptables -t nat -F")
-    command("iptables -F")
-    command("iptables -X")
     logger.info("Rules cleared!")
 
 
