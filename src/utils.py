@@ -5,9 +5,6 @@ import time
 from subprocess import Popen, PIPE, CalledProcessError
 from typing import List, Union
 
-from .docker import docker_cleaner
-
-
 # Logging
 logger = logging.getLogger(__name__)
 
@@ -17,21 +14,22 @@ def banner():
 
     command("clear")
     print(
-        ""
-        "  _                                _            _     "
-        " | |                              | |          | |    "
-        " | |__   ___  _ __   ___ _   _  __| | ___   ___| | __ "
-        " | '_ \ / _ \| '_ \ / _ \ | | |/ _` |/ _ \ / __| |/ / "
-        " | | | | (_) | | | |  __/ |_| | (_| | (_) | (__|   <  "
-        " |_| |_|\___/|_| |_|\___|\__, |\__,_|\___/ \___|_|\_\ "
-        "                          __/ |                       "
-        "                         |___/                   v0.1 "
-        ""
+        "\n"
+        "  _                                _            _     \n"
+        " | |                              | |          | |    \n"
+        " | |__   ___  _ __   ___ _   _  __| | ___   ___| | __ \n"
+        " | '_ \ / _ \| '_ \ / _ \ | | |/ _` |/ _ \ / __| |/ / \n"
+        " | | | | (_) | | | |  __/ |_| | (_| | (_) | (__|   <  \n"
+        " |_| |_|\___/|_| |_|\___|\__, |\__,_|\___/ \___|_|\_\ \n"
+        "                          __/ |                       \n"
+        "                         |___/                   v0.1 \n"
+        "\n"
     )
 
 
 def command(
-    cmd: Union[str, List[str]]
+    cmd: Union[str, List[str]],
+    cmd_list: List[str]=list()
 ) -> Union[str, bool]:
     """Calls a shell command
 
@@ -42,14 +40,15 @@ def command(
     date = time.strftime("%d/%m/%Y - %H:%M:%S")
     if isinstance(cmd, str):
         cmd = cmd.split()
-
+    cmd += cmd_list
+    print(f"cmd: { cmd }")
     try:
         out, err = Popen(cmd, stdout=PIPE, stderr=PIPE).communicate()
     except CalledProcessError as err:
-        logger.exception("[{date}] {err}".format(date=date, err=err))
+        logger.exception(f"[{ date }] { err }")
 
     if err:
-        logger.error("[{date}] {err}".format(err=err))
+        logger.error(f"[{ date }] { err }")
         return False
     return out.decode('utf-8')
 
@@ -84,11 +83,3 @@ def get_local_ip(interface: str) -> str:
     address = addresses[netifaces.AF_INET][0]
     local_ip = address.get('addr')
     return local_ip
-
-
-def honeydock_cleaner(interface: str) -> None:
-    banner()
-    logger.info("Cleaning process has started.")
-    docker_cleaner()
-    iptables_cleaner()
-    logger.info("Done!")

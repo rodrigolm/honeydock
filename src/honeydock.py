@@ -2,6 +2,7 @@
 
 # TODO import argparse  #  https://docs.python.org/3/library/argparse.html
 import logging
+import os
 import re
 import sqlite3
 
@@ -13,49 +14,32 @@ from pyinotify import (
 )
 from typing import Union
 
-from .docker import docker_host_port, docker_run
-from .utils import banner, command, get_local_ip
-
-
-# Honeypot Config
-HONEYPOT_DOCKER_IMAGE = "cowrie/cowrie"
-HONEYPOT_DOCKER_IMAGE_CMD = ""
-HONEYPOT_DOCKER_OPTIONS = \
-    "-e 'DOCKER=yes' -v $(HOME)/honeydock/honeypot/cowrie/cowrie.cfg:/cowrie/cowrie-git/cowrie.cfg"
-HONEYPOT_DOCKER_SERVICE_PORT = "2222"
-HONEYPOT_SERVICE_PORT = "22"
-
+from docker import docker_cleaner, docker_host_port, docker_run
+from utils import banner, command, get_local_ip, iptables_cleaner
 
 # Global Variables
+HOME = os.getenv("HOME")
 CURRENT_CONTAINER = None
 INTERFACE = "enp0s3"
 KERN_LOG_PATH = "/var/log/kern.log"
 KERN_LOG_CONTENT = open(KERN_LOG_PATH, 'r').readlines()
 KERN_LOG_LEN = len(KERN_LOG_CONTENT)
 
+# Honeypot Config
+HONEYPOT_DOCKER_IMAGE = "cowrie/cowrie"
+HONEYPOT_DOCKER_IMAGE_CMD = ""
+HONEYPOT_DOCKER_OPTIONS = \
+    "-e \"DOCKER=yes\" " \
+    f"-v { HOME }/honeydock/honeypot/cowrie/cowrie.cfg:/cowrie/cowrie-git/cowrie.cfg"
+HONEYPOT_DOCKER_SERVICE_PORT = "2222"
+HONEYPOT_SERVICE_PORT = "22"
 
 # Open database connection
 DB = sqlite3.connect("honeydock.db")
 CONN = DB.cursor()
 
-
 # Logging
-logging.config.fileConfig(filename='honeydock.log')
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-# create console handler and set level to debug
-console = logging.StreamHandler()
-console.setLevel(logging.DEBUG)
-
-# create formatter
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-# add formatter to console
-console.setFormatter(formatter)
-
-# add console to logger
-logger.addHandler(console)
 
 
 # Database
@@ -131,6 +115,16 @@ def create_container() -> Union[str, bool]:
     return container if created else created
 
 
+def cleaner() -> None:
+    """Remove all docker containers and iptables rules"""
+
+    banner()
+    logger.info("Cleaning process has started.")
+    docker_cleaner()
+    iptables_cleaner()
+    logger.info("Done!")
+
+
 class EventHandler(ProcessEvent):
 
     def __init__(self, file_path, *args, **kwargs):
@@ -177,33 +171,29 @@ class EventHandler(ProcessEvent):
                 host_port = docker_host_port(CURRENT_CONTAINER)[HONEYPOT_DOCKER_SERVICE_PORT]
                 command(
                     "iptables -t nat -D PREROUTING -p tcp "
-                    f"-d { local_ip } "
-                    f"--dport { HONEYPOT_SERVICE_PORT } "
-                    "-j DNAT "
-                    f"--to { local_ip }:{ host_port }"
+                    f"-d { local_ip } --dport { HONEYPOT_SERVICE_PORT } "
+                    f"-j DNAT --to { local_ip }:{ host_port }"
                 )
                 logger.info("Attaching this IP to container")
                 command(
                     "iptables -t nat -A PREROUTING -p tcp "
-                    f"-s { attacker_ip } "
-                    f"-d { local_ip } "
-                    f"--dport { HONEYPOT_SERVICE_PORT } "
-                    "-j DNAT "
-                    f"--to { local_ip }:{ host_port }"
+                    f"-s { attacker_ip } -d { local_ip } --dport { HONEYPOT_SERVICE_PORT } "
+                    f"-j DNAT --to { local_ip }:{ host_port }"
                 )
 
                 logger.info("Creating a new docker instance")
-                create_container()
+                container = create_container()
+                if not container:
+                    return
+
                 host_port = docker_host_port(CURRENT_CONTAINER)[HONEYPOT_DOCKER_SERVICE_PORT]
                 logger.info(f"New docker container created on port { host_port }")
 
                 logger.info("Creating main rule to new docker")
                 command(
                     "iptables -t nat -A PREROUTING -p tcp "
-                    f"-d { local_ip } "
-                    f"--dport { HONEYPOT_SERVICE_PORT } "
-                    "-j DNAT "
-                    f"--to { local_ip }:{ host_port }"
+                    f"-d { local_ip } --dport { HONEYPOT_SERVICE_PORT } "
+                    f"-j DNAT --to { local_ip }:{ host_port }"
                 )
                 logger.info("Done!")
             else:
@@ -212,36 +202,37 @@ class EventHandler(ProcessEvent):
                 )
 
 
-if __name__ == "__main__":
+def main():
     banner()
     logger.info("Initializing...")
 
     logger.info("Starting base docker")
-    create_container()
+    container = create_container()
+    if not container:
+        return
+
     host_port = docker_host_port(CURRENT_CONTAINER)[HONEYPOT_DOCKER_SERVICE_PORT]
     logger.info("Base docker has started")
 
     logger.info("Creating initial iptables rules...")
     local_ip = get_local_ip(INTERFACE)
     command(
-        f"iptables -t nat -A PREROUTING "
-        "-m state "
-        "--state NEW,ESTABLISHED "
-        "-j ACCEPT"
+        "iptables -t nat -A PREROUTING -p tcp "
+        f"-d { local_ip } --dport { HONEYPOT_SERVICE_PORT } "
+        f"-j DNAT --to { local_ip }:{ host_port }"
     )
     command(
-        "iptables -t nat -A PREROUTING -p tcp "
-        f"-d { local_ip } "
-        f"--dport { HONEYPOT_SERVICE_PORT } "
-        "-j LOG "
-        "--log-prefix \"Connection established: \" "
+        f"iptables -A INPUT -i { INTERFACE } -p tcp "
+        f"--dport { HONEYPOT_SERVICE_PORT } -m state --state NEW,ESTABLISHED -j ACCEPT"
     )
     command(
-        "iptables -t nat -A PREROUTING -p tcp "
-        f"-d { local_ip } "
-        f"--dport { HONEYPOT_SERVICE_PORT } "
-        "-j DNAT "
-        f"--to { local_ip }:{ host_port }"
+        f"iptables -A OUTPUT -o { INTERFACE } -p tcp "
+        f"--sport { HONEYPOT_SERVICE_PORT } -m state --state ESTABLISHED -j ACCEPT"
+    )
+    command(
+        "iptables -A OUTPUT -p tcp "
+        "--tcp-flags SYN,ACK SYN,ACK -j LOG",
+        ["--log-prefix", "\"Connection established: \""]
     )
     logger.info("Rules created. Honeydock is ready to go. :)")
 
@@ -250,3 +241,7 @@ if __name__ == "__main__":
     watch_manager.add_watch(handler.file_path, IN_MODIFY)
     notifier = Notifier(watch_manager, handler)
     notifier.loop()
+
+
+if __name__ == "__main__":
+    main()

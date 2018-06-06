@@ -1,10 +1,9 @@
 import json
 import logging
 
-from typing import List, Union
+from typing import List, Tuple, Union
 
-from .utils import command
-
+from utils import command
 
 # Logging
 logger = logging.getLogger(__name__)
@@ -33,7 +32,8 @@ def docker_host_port(container: str) -> dict:
     """
 
     host_post = dict()
-    cmd = "docker inspect -f " r"{{json .NetworkSettings.Ports}} " f"{ container }"
+    cmd = "docker inspect -f"
+    cmd = cmd.split() + [r"{{json .NetworkSettings.Ports}}", container]
     out = command(cmd)
     if out:
         port_dict = json.loads(out)
@@ -63,7 +63,7 @@ def docker_run(
     image_cmd: str="",
     network: str="",
     options: str=""
-) -> Union[(str, bool), (None, bool)]:
+) -> Union[Tuple[str, bool], Tuple[None, bool]]:
     """Run a container docker
 
     :param image: docker image
