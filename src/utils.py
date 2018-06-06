@@ -3,10 +3,12 @@ import netifaces
 import time
 
 from subprocess import Popen, PIPE, CalledProcessError
-from typing import List
+from typing import List, Union
 
 from .docker import docker_cleaner
 
+
+# Logging
 logger = logging.getLogger(__name__)
 
 
@@ -28,7 +30,9 @@ def banner():
     )
 
 
-def command(cmd: str or List[str]) -> str or bool:
+def command(
+    cmd: Union[str, List[str]]
+) -> Union[str, bool]:
     """Calls a shell command
 
     :param cmd: command
@@ -47,7 +51,7 @@ def command(cmd: str or List[str]) -> str or bool:
     if err:
         logger.error("[{date}] {err}".format(err=err))
         return False
-    return out.decode('utf-8') or True
+    return out.decode('utf-8')
 
 
 def interfaces() -> List[str]:
@@ -61,13 +65,13 @@ def interfaces() -> List[str]:
 def iptables_cleaner() -> None:
     """Remove all rules"""
 
-    print("Cleaning iptables rules...")
+    logger.info("Cleaning iptables rules...")
     command("iptables -P INPUT ACCEPT")
     command("iptables -P OUTPUT ACCEPT")
     command("iptables -t nat -F")
     command("iptables -F")
     command("iptables -X")
-    print("Rules cleared!")
+    logger.info("Rules cleared!")
 
 
 def get_local_ip(interface: str) -> str:
@@ -84,7 +88,7 @@ def get_local_ip(interface: str) -> str:
 
 def honeydock_cleaner(interface: str) -> None:
     banner()
-    print("Cleaning process has started.")
+    logger.info("Cleaning process has started.")
     docker_cleaner()
     iptables_cleaner()
-    print("Done!")
+    logger.info("Done!")

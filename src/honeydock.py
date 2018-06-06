@@ -2,20 +2,29 @@
 
 # TODO import argparse  #  https://docs.python.org/3/library/argparse.html
 import logging
-import pyinotify
 import re
 import sqlite3
 
+from pyinotify import (
+    IN_MODIFY,
+    Notifier,
+    ProcessEvent,
+    WatchManager
+)
+from typing import Union
+
 from .docker import docker_host_port, docker_run
 from .utils import banner, command, get_local_ip
+
 
 # Honeypot Config
 HONEYPOT_DOCKER_IMAGE = "cowrie/cowrie"
 HONEYPOT_DOCKER_IMAGE_CMD = ""
 HONEYPOT_DOCKER_OPTIONS = \
-    "-e 'DOCKER=yes' -v $(PROJECT_PATH)/honeypot/cowrie/cowrie.cfg:/cowrie/cowrie-git/cowrie.cfg"
+    "-e 'DOCKER=yes' -v $(HOME)/honeydock/honeypot/cowrie/cowrie.cfg:/cowrie/cowrie-git/cowrie.cfg"
 HONEYPOT_DOCKER_SERVICE_PORT = "2222"
 HONEYPOT_SERVICE_PORT = "22"
+
 
 # Global Variables
 CURRENT_CONTAINER = None
@@ -24,8 +33,6 @@ KERN_LOG_PATH = "/var/log/kern.log"
 KERN_LOG_CONTENT = open(KERN_LOG_PATH, 'r').readlines()
 KERN_LOG_LEN = len(KERN_LOG_CONTENT)
 
-# Pyinotify
-WATCH_MANAGER = pyinotify.WatchManager()
 
 # Open database connection
 DB = sqlite3.connect("honeydock.db")
@@ -33,57 +40,55 @@ CONN = DB.cursor()
 
 
 # Logging
+logging.config.fileConfig(filename='honeydock.log')
 logger = logging.getLogger(__name__)
-logging.root.handlers = []
-logging.basicConfig(
-    format="[%(asctime)s] [%(threadName)s] [%(levelname)s]: %(message)s",
-    level=logging.DEBUG,
-    filename="honeydock.log"
-)
+logger.setLevel(logging.DEBUG)
 
-# Create a console handler
+# create console handler and set level to debug
 console = logging.StreamHandler()
 console.setLevel(logging.DEBUG)
 
-# Create a logging format
-formatter = logging.Formatter("[%(asctime)s] [%(threadName)s] [%(levelname)s]: %(message)s")
+# create formatter
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# add formatter to console
 console.setFormatter(formatter)
 
-# Add the handlers to the logger
+# add console to logger
 logger.addHandler(console)
 
 
-def attacker_exists(ip):
-    """Check if a attacker exists"""
+# Database
+
+def attacker_exists(ip: str) -> bool:
+    """Check if a attacker exists
+
+    :param ip: attacker ip
+    :return: if the attacker is registered
+    """
 
     CONN.execute(f"SELECT ip FROM attacker WHERE ip='{ ip }' LIMIT 1")
     rows = CONN.fetchall()
     return len(rows) == 1
 
 
-def create_attacker(ip, container):
-    """Create a attacker"""
+def create_attacker(ip: str, container: str) -> bool:
+    """Create a attacker
+
+    :param ip: attacker ip
+    :param container: docker container id
+    :return: if the attacker was successfully registered
+    """
 
     CONN.execute(f"INSERT INTO attacker (ip, container) VALUES ('{ ip }', '{ container }')")
     return db_commit()
 
 
-def create_container() -> str or bool:
-    """Create a container with a honeypot docker image
+def create_table() -> bool:
+    """Create a table attacker
 
-    :return: get container host port or false
+    :return: if the table was created successfully
     """
-
-    container, created = docker_run(
-        image=HONEYPOT_DOCKER_IMAGE,
-        image_cmd=HONEYPOT_DOCKER_IMAGE_CMD,
-        options=HONEYPOT_DOCKER_OPTIONS
-    )
-    return container if created else created
-
-
-def create_table() -> None:
-    """Create a table attacker"""
 
     CONN.execute('''
         CREATE TABLE attacker (
@@ -95,7 +100,10 @@ def create_table() -> None:
 
 
 def db_commit() -> bool:
-    """Commit operation in database"""
+    """Commit operation in database
+
+    :return: if the transaction in the database was made successfully
+    """
 
     try:
         DB.commit()
@@ -105,7 +113,25 @@ def db_commit() -> bool:
         return False
 
 
-class EventHandler(pyinotify.ProcessEvent):
+# Container
+
+def create_container() -> Union[str, bool]:
+    """Create a container with a honeypot docker image
+
+    :return: get container id or false
+    """
+    global CURRENT_CONTAINER
+
+    container, created = docker_run(
+        image=HONEYPOT_DOCKER_IMAGE,
+        image_cmd=HONEYPOT_DOCKER_IMAGE_CMD,
+        options=HONEYPOT_DOCKER_OPTIONS
+    )
+    CURRENT_CONTAINER = container
+    return container if created else created
+
+
+class EventHandler(ProcessEvent):
 
     def __init__(self, file_path, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -115,7 +141,6 @@ class EventHandler(pyinotify.ProcessEvent):
         self._logpat = re.compile(logpats)
 
     def process_IN_MODIFY(self, event):
-        global CURRENT_CONTAINER
         global KERN_LOG_CONTENT
         global KERN_LOG_LEN
 
@@ -132,76 +157,85 @@ class EventHandler(pyinotify.ProcessEvent):
         KERN_LOG_LEN = len(KERN_LOG_CONTENT)
 
         for log in changes:
-            if "Connection established:" in log:
-                attacker_ip = (re.search(r'DST=(.*?) ', log)).group(1)
+            if "Connection established:" not in log:
+                continue
 
-                logger.debug("New connection was established!")
-                logger.debug(f"Connection detail: { log }")
-                logger.debug(f"Attacker ({ attacker_ip }) on SSH service!")
-                if not attacker_exists(attacker_ip):
-                    logger.info(f"The IP: { attacker_ip } it's from a new attacker")
-                    # send_email_alert(attacker_ip, 1)
-                    # logger.info("E-mail alert sent.")
-                    created = create_attacker(attacker_ip, CURRENT_CONTAINER)
-                    if not created:
-                        return
+            attacker_ip = (re.search(r'DST=(.*?) ', log)).group(1)
 
-                    logger.info(f"The IP: { attacker_ip } was added on attacker's table")
-                    logger.info("Initiating proccess of attaching this IP to a docker instance")
-                    logger.info("Removing main rule")
-                    host_port = docker_host_port(CURRENT_CONTAINER)[HONEYPOT_DOCKER_SERVICE_PORT]
-                    command(
-                        "iptables -t nat -D PREROUTING -p tcp "
-                        f"-d { local_ip } "
-                        f"--dport { HONEYPOT_SERVICE_PORT } "
-                        "-j DNAT "
-                        f"--to { local_ip }:{ host_port }"
-                    )
-                    logger.info("Attaching this IP to container")
-                    command(
-                        "iptables -t nat -A PREROUTING -p tcp "
-                        f"-s { attacker_ip } "
-                        f"-d { local_ip } "
-                        f"--dport { HONEYPOT_SERVICE_PORT } "
-                        "-j DNAT "
-                        f"--to { local_ip }:{ host_port }"
-                    )
-                    logger.info("Creating a new docker instance")
-                    container = create_container()
-                    CURRENT_CONTAINER = container
-                    host_port = docker_host_port(container)[HONEYPOT_DOCKER_SERVICE_PORT]
-                    logger.info(f"New docker container created on port { host_port }")
-                    logger.info("Creating main rule to new docker")
-                    command(
-                        "iptables -t nat -A PREROUTING -p tcp "
-                        f"-d { local_ip } "
-                        f"--dport { HONEYPOT_SERVICE_PORT } "
-                        "-j DNAT "
-                        f"--to { local_ip }:{ host_port }"
-                    )
-                    logger.info("Done!")
-                else:
-                    logger.info(
-                        f"The IP: { attacker_ip } it's from a returning attacker. "
-                        "No action required"
-                    )
-                    # send_email_alert(attacker_ip, 2)
+            logger.debug("New connection was established!")
+            logger.debug(f"Connection detail: { log }")
+            logger.debug(f"Attacker ({ attacker_ip })")
+            if not attacker_exists(attacker_ip):
+                logger.info(f"The IP: { attacker_ip } it's from a new attacker")
+                created = create_attacker(attacker_ip, CURRENT_CONTAINER)
+                if not created:
+                    return
+
+                logger.info(f"The IP: { attacker_ip } was added on attacker's table")
+                logger.info("Initiating proccess of attaching this IP to a docker instance")
+                logger.info("Removing main rule")
+                host_port = docker_host_port(CURRENT_CONTAINER)[HONEYPOT_DOCKER_SERVICE_PORT]
+                command(
+                    "iptables -t nat -D PREROUTING -p tcp "
+                    f"-d { local_ip } "
+                    f"--dport { HONEYPOT_SERVICE_PORT } "
+                    "-j DNAT "
+                    f"--to { local_ip }:{ host_port }"
+                )
+                logger.info("Attaching this IP to container")
+                command(
+                    "iptables -t nat -A PREROUTING -p tcp "
+                    f"-s { attacker_ip } "
+                    f"-d { local_ip } "
+                    f"--dport { HONEYPOT_SERVICE_PORT } "
+                    "-j DNAT "
+                    f"--to { local_ip }:{ host_port }"
+                )
+
+                logger.info("Creating a new docker instance")
+                create_container()
+                host_port = docker_host_port(CURRENT_CONTAINER)[HONEYPOT_DOCKER_SERVICE_PORT]
+                logger.info(f"New docker container created on port { host_port }")
+
+                logger.info("Creating main rule to new docker")
+                command(
+                    "iptables -t nat -A PREROUTING -p tcp "
+                    f"-d { local_ip } "
+                    f"--dport { HONEYPOT_SERVICE_PORT } "
+                    "-j DNAT "
+                    f"--to { local_ip }:{ host_port }"
+                )
+                logger.info("Done!")
+            else:
+                logger.info(
+                    f"The IP: { attacker_ip } it's from a returning attacker. No action required"
+                )
 
 
 if __name__ == "__main__":
-    global CURRENT_CONTAINER
-
     banner()
     logger.info("Initializing...")
 
     logger.info("Starting base docker")
-    container = create_container()
-    CURRENT_CONTAINER = container
-    host_port = docker_host_port(container)[HONEYPOT_DOCKER_SERVICE_PORT]
-    logger.info("SSH base docker has started")
+    create_container()
+    host_port = docker_host_port(CURRENT_CONTAINER)[HONEYPOT_DOCKER_SERVICE_PORT]
+    logger.info("Base docker has started")
 
     logger.info("Creating initial iptables rules...")
     local_ip = get_local_ip(INTERFACE)
+    command(
+        f"iptables -t nat -A PREROUTING "
+        "-m state "
+        "--state NEW,ESTABLISHED "
+        "-j ACCEPT"
+    )
+    command(
+        "iptables -t nat -A PREROUTING -p tcp "
+        f"-d { local_ip } "
+        f"--dport { HONEYPOT_SERVICE_PORT } "
+        "-j LOG "
+        "--log-prefix \"Connection established: \" "
+    )
     command(
         "iptables -t nat -A PREROUTING -p tcp "
         f"-d { local_ip } "
@@ -209,34 +243,10 @@ if __name__ == "__main__":
         "-j DNAT "
         f"--to { local_ip }:{ host_port }"
     )
-    command(
-        f"iptables -A INPUT "
-        "-i { INTERFACE } "
-        "-p tcp "
-        f"--dport { HONEYPOT_SERVICE_PORT } "
-        "-m state "
-        "--state NEW,ESTABLISHED "
-        "-j ACCEPT"
-    )
-    command(
-        f"iptables -A OUTPUT "
-        "-o { INTERFACE } "
-        "-p tcp "
-        f"--sport { HONEYPOT_SERVICE_PORT } "
-        "-m state "
-        "--state ESTABLISHED "
-        "-j ACCEPT"
-    )
-    command(
-        "iptables -A OUTPUT "
-        "-p tcp "
-        "--tcp-flags SYN,ACK SYN,ACK "
-        "-j LOG "
-        "--log-prefix \"Connection established: \" "
-    )
     logger.info("Rules created. Honeydock is ready to go. :)")
 
     handler = EventHandler(KERN_LOG_PATH)
-    notifier = pyinotify.Notifier(WATCH_MANAGER, handler)
-    WATCH_MANAGER.add_watch(handler.file_path, pyinotify.IN_MODIFY)
+    watch_manager = WatchManager()
+    watch_manager.add_watch(handler.file_path, IN_MODIFY)
+    notifier = Notifier(watch_manager, handler)
     notifier.loop()

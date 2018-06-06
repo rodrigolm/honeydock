@@ -1,8 +1,13 @@
 import json
+import logging
 
-from typing import List
+from typing import List, Union
 
 from .utils import command
+
+
+# Logging
+logger = logging.getLogger(__name__)
 
 
 def docker_cleaner() -> None:
@@ -57,8 +62,8 @@ def docker_run(
     image: str,
     image_cmd: str="",
     network: str="",
-    options: str="",
-) -> [(str, bool), (None, bool)]:
+    options: str=""
+) -> Union[(str, bool), (None, bool)]:
     """Run a container docker
 
     :param image: docker image
