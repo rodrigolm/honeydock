@@ -29,7 +29,7 @@ KERN_LOG_LEN = len(KERN_LOG_CONTENT)
 HONEYPOT_DOCKER_IMAGE = "cowrie/cowrie"
 HONEYPOT_DOCKER_IMAGE_CMD = ""
 HONEYPOT_DOCKER_OPTIONS = \
-    "-e \"DOCKER=yes\" " \
+    "-e DOCKER=yes " \
     f"-v { HOME }/honeydock/honeypot/cowrie/cowrie.cfg:/cowrie/cowrie-git/cowrie.cfg"
 HONEYPOT_DOCKER_SERVICE_PORT = "2222"
 HONEYPOT_SERVICE_PORT = "22"
@@ -99,7 +99,7 @@ def db_commit() -> bool:
 
 # Container
 
-def create_container() -> Union[str, bool]:
+def create_container() -> Union[bool, str]:
     """Create a container with a honeypot docker image
 
     :return: get container id or false
@@ -138,9 +138,6 @@ class EventHandler(ProcessEvent):
         global KERN_LOG_CONTENT
         global KERN_LOG_LEN
 
-        if not CURRENT_CONTAINER:
-            return
-
         local_ip = get_local_ip(INTERFACE)
         loglines = open(self.file_path, 'r').readlines()
         loglines_len = len(loglines)
@@ -151,7 +148,7 @@ class EventHandler(ProcessEvent):
         KERN_LOG_LEN = len(KERN_LOG_CONTENT)
 
         for log in changes:
-            if "Connection established:" not in log:
+            if "Connection established: " not in log:
                 continue
 
             attacker_ip = (re.search(r'DST=(.*?) ', log)).group(1)
@@ -169,17 +166,22 @@ class EventHandler(ProcessEvent):
                 logger.info("Initiating proccess of attaching this IP to a docker instance")
                 logger.info("Removing main rule")
                 host_port = docker_host_port(CURRENT_CONTAINER)[HONEYPOT_DOCKER_SERVICE_PORT]
-                command(
+                out, ok = command(
                     "iptables -t nat -D PREROUTING -p tcp "
                     f"-d { local_ip } --dport { HONEYPOT_SERVICE_PORT } "
                     f"-j DNAT --to { local_ip }:{ host_port }"
                 )
+                if not ok:
+                    return
+
                 logger.info("Attaching this IP to container")
-                command(
+                out, ok = command(
                     "iptables -t nat -A PREROUTING -p tcp "
                     f"-s { attacker_ip } -d { local_ip } --dport { HONEYPOT_SERVICE_PORT } "
                     f"-j DNAT --to { local_ip }:{ host_port }"
                 )
+                if not ok:
+                    return
 
                 logger.info("Creating a new docker instance")
                 container = create_container()
@@ -190,11 +192,14 @@ class EventHandler(ProcessEvent):
                 logger.info(f"New docker container created on port { host_port }")
 
                 logger.info("Creating main rule to new docker")
-                command(
+                out, ok = command(
                     "iptables -t nat -A PREROUTING -p tcp "
                     f"-d { local_ip } --dport { HONEYPOT_SERVICE_PORT } "
                     f"-j DNAT --to { local_ip }:{ host_port }"
                 )
+                if not ok:
+                    return
+
                 logger.info("Done!")
             else:
                 logger.info(
@@ -216,24 +221,23 @@ def main():
 
     logger.info("Creating initial iptables rules...")
     local_ip = get_local_ip(INTERFACE)
-    command(
+
+    out, ok = command(
         "iptables -t nat -A PREROUTING -p tcp "
         f"-d { local_ip } --dport { HONEYPOT_SERVICE_PORT } "
         f"-j DNAT --to { local_ip }:{ host_port }"
     )
-    command(
-        f"iptables -A INPUT -i { INTERFACE } -p tcp "
-        f"--dport { HONEYPOT_SERVICE_PORT } -m state --state NEW,ESTABLISHED -j ACCEPT"
+    if not ok:
+        return
+
+    out, ok = command(
+        "iptables -t nat -A PREROUTING -p tcp "
+        f"-d { local_ip } --dport { HONEYPOT_SERVICE_PORT }",
+        ["-j", "LOG", "--log-prefix", "Connection established: "]
     )
-    command(
-        f"iptables -A OUTPUT -o { INTERFACE } -p tcp "
-        f"--sport { HONEYPOT_SERVICE_PORT } -m state --state ESTABLISHED -j ACCEPT"
-    )
-    command(
-        "iptables -A OUTPUT -p tcp "
-        "--tcp-flags SYN,ACK SYN,ACK -j LOG",
-        ["--log-prefix", "\"Connection established: \""]
-    )
+    if not ok:
+        return
+
     logger.info("Rules created. Honeydock is ready to go. :)")
 
     handler = EventHandler(KERN_LOG_PATH)
