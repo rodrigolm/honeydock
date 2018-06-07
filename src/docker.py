@@ -1,7 +1,7 @@
 import json
 import logging
 
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 from utils import command
 
