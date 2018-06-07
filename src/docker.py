@@ -13,8 +13,8 @@ def docker_cleaner() -> None:
     """Stop and remove all docker containers"""
 
     cmd = "docker ps -aq"
-    out = command(cmd)
-    if out:
+    out, ok = command(cmd)
+    if ok:
         container_list = out.split()
         print("Stopping all running docker containers...")
         docker_stop(container_list)
@@ -33,9 +33,8 @@ def docker_host_port(container: str) -> dict:
 
     host_post = dict()
     cmd = "docker inspect -f"
-    cmd = cmd.split() + [r"{{json .NetworkSettings.Ports}}", container]
-    out = command(cmd)
-    if out:
+    out, ok = command(cmd, [r"{{json .NetworkSettings.Ports}}", container])
+    if ok:
         port_dict = json.loads(out)
         for port in port_dict.keys():
             local_port = port.split('/')[0]
@@ -50,9 +49,8 @@ def docker_rm(container_list: List[str]) -> None:
     """
 
     cmd = "docker rm"
-    cmd = cmd.split() + container_list
-    out = command(cmd)
-    if out:
+    out, ok = command(cmd, container_list)
+    if ok:
         print("Containers removed!\n", out)
     else:
         print("Error removing containers!")
@@ -63,7 +61,7 @@ def docker_run(
     image_cmd: str="",
     network: str="",
     options: str=""
-) -> Union[Tuple[str, bool], Tuple[None, bool]]:
+) -> Tuple[str, bool]:
     """Run a container docker
 
     :param image: docker image
@@ -74,13 +72,13 @@ def docker_run(
     """
 
     cmd = f"docker run -d -P { network } { options } { image } { image_cmd }"
-    out = command(cmd)
+    out, ok = command(cmd)
     if out:
         print("Container created!\n", out)
         return out[:12], True
     else:
         print("Error creating container!")
-        return None, False
+        return "", False
 
 
 def docker_stop(container_list: List[str]) -> None:
@@ -90,9 +88,8 @@ def docker_stop(container_list: List[str]) -> None:
     """
 
     cmd = "docker stop"
-    cmd = cmd.split() + container_list
-    out = command(cmd)
-    if out:
+    out, ok = command(cmd, container_list)
+    if ok:
         print("Containers stopped!\n", out)
     else:
         print("Error stopping containers!")
