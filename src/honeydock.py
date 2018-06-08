@@ -135,6 +135,7 @@ class EventHandler(ProcessEvent):
         self._logpat = re.compile(logpats)
 
     def process_IN_MODIFY(self, event):
+        global CURRENT_CONTAINER
         global KERN_LOG_CONTENT
         global KERN_LOG_LEN
 
@@ -231,8 +232,23 @@ def main():
         return
 
     out, ok = command(
-        "iptables -t nat -A PREROUTING -p tcp "
-        f"-d { local_ip } --dport { HONEYPOT_SERVICE_PORT }",
+        f"iptables -A INPUT -p tcp -i { INTERFACE } "
+        "--dport 22 -m state --state NEW,ESTABLISHED "
+        "-j ACCEPT"
+    )
+    if not ok:
+        return
+
+    out, ok = command(
+        f"iptables -A OUTPUT -p tcp -o { INTERFACE } "
+        "--sport 22 -m state --state ESTABLISHED "
+        "-j ACCEPT"
+    )
+    if not ok:
+        return
+
+    out, ok = command(
+        f"iptables -A OUTPUT -p tcp --tcp-flags SYN,ACK SYN,ACK",
         ["-j", "LOG", "--log-prefix", "Connection established: "]
     )
     if not ok:
