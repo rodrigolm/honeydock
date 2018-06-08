@@ -66,7 +66,9 @@ def iptables_cleaner() -> None:
     """Remove all rules"""
 
     logger.info("Cleaning iptables rules...")
+    command("iptables -F")
     command("iptables -t nat -F")
+    command("systemctl restart docker.service")
     logger.info("Rules cleared!")
 
 
