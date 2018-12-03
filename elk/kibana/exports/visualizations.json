@@ -1,0 +1,72 @@
+[
+  {
+    "_id": "e35a7050-6697-11e8-86d1-813a7571e879",
+    "_type": "visualization",
+    "_source": {
+      "title": "password-chart",
+      "visState": "{\"title\":\"password-chart\",\"type\":\"pie\",\"params\":{\"type\":\"pie\",\"addTooltip\":true,\"addLegend\":true,\"legendPosition\":\"right\",\"isDonut\":true,\"labels\":{\"show\":false,\"values\":true,\"last_level\":true,\"truncate\":100}},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"segment\",\"params\":{\"field\":\"status.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":2,\"order\":\"desc\",\"orderBy\":\"1\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"segment\",\"params\":{\"field\":\"password.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":50,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
+      "uiStateJSON": "{\"vis\":{\"colors\":{\"failed\":\"#BF1B00\",\"succeeded\":\"#1F78C1\"}}}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"fe99c6a0-69e8-11e8-a48a-ddf9af5af398\",\"filter\":[{\"meta\":{\"index\":\"259c18a0-6694-11e8-86d1-813a7571e879\",\"negate\":false,\"disabled\":false,\"alias\":null,\"type\":\"phrase\",\"key\":\"log_type\",\"value\":\"SSHService 'ssh-userauth' on HoneyPotSSHTransport\",\"params\":{\"query\":\"SSHService 'ssh-userauth' on HoneyPotSSHTransport\",\"type\":\"phrase\"}},\"query\":{\"match\":{\"log_type\":{\"query\":\"SSHService 'ssh-userauth' on HoneyPotSSHTransport\",\"type\":\"phrase\"}}},\"$state\":{\"store\":\"appState\"}}],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
+      }
+    }
+  },
+  {
+    "_id": "80bb3050-669d-11e8-86d1-813a7571e879",
+    "_type": "visualization",
+    "_source": {
+      "title": "connection-chart",
+      "visState": "{\"title\":\"connection-chart\",\"type\":\"pie\",\"params\":{\"type\":\"pie\",\"addTooltip\":true,\"addLegend\":true,\"legendPosition\":\"right\",\"isDonut\":true,\"labels\":{\"show\":false,\"values\":true,\"last_level\":true,\"truncate\":100}},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"segment\",\"params\":{\"field\":\"docker_id.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":50,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"fe99c6a0-69e8-11e8-a48a-ddf9af5af398\",\"filter\":[{\"meta\":{\"index\":\"259c18a0-6694-11e8-86d1-813a7571e879\",\"negate\":false,\"disabled\":false,\"alias\":null,\"type\":\"phrase\",\"key\":\"log_type\",\"value\":\"cowrie.ssh.factory.CowrieSSHFactory\",\"params\":{\"query\":\"cowrie.ssh.factory.CowrieSSHFactory\",\"type\":\"phrase\"}},\"query\":{\"match\":{\"log_type\":{\"query\":\"cowrie.ssh.factory.CowrieSSHFactory\",\"type\":\"phrase\"}}},\"$state\":{\"store\":\"appState\"}}],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
+      }
+    }
+  },
+  {
+    "_id": "110fd8f0-669d-11e8-86d1-813a7571e879",
+    "_type": "visualization",
+    "_source": {
+      "title": "command-chart",
+      "visState": "{\"title\":\"command-chart\",\"type\":\"horizontal_bar\",\"params\":{\"type\":\"histogram\",\"grid\":{\"categoryLines\":false,\"style\":{\"color\":\"#eee\"}},\"categoryAxes\":[{\"id\":\"CategoryAxis-1\",\"type\":\"category\",\"position\":\"left\",\"show\":true,\"style\":{},\"scale\":{\"type\":\"linear\"},\"labels\":{\"show\":true,\"rotate\":0,\"filter\":false,\"truncate\":200},\"title\":{}}],\"valueAxes\":[{\"id\":\"ValueAxis-1\",\"name\":\"LeftAxis-1\",\"type\":\"value\",\"position\":\"bottom\",\"show\":true,\"style\":{},\"scale\":{\"type\":\"linear\",\"mode\":\"normal\"},\"labels\":{\"show\":true,\"rotate\":75,\"filter\":true,\"truncate\":100},\"title\":{\"text\":\"Count\"}}],\"seriesParams\":[{\"show\":true,\"type\":\"histogram\",\"mode\":\"normal\",\"data\":{\"label\":\"Count\",\"id\":\"1\"},\"valueAxis\":\"ValueAxis-1\",\"drawLinesBetweenPoints\":true,\"showCircles\":true}],\"addTooltip\":true,\"addLegend\":true,\"legendPosition\":\"right\",\"times\":[],\"addTimeMarker\":false},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"segment\",\"params\":{\"field\":\"cmd.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":50,\"order\":\"desc\",\"orderBy\":\"1\"}},{\"id\":\"3\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"group\",\"params\":{\"field\":\"cmd_status.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":2,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
+      "uiStateJSON": "{\"spy\":{\"mode\":{\"name\":\"table\"}}}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"fe99c6a0-69e8-11e8-a48a-ddf9af5af398\",\"filter\":[{\"meta\":{\"index\":\"259c18a0-6694-11e8-86d1-813a7571e879\",\"negate\":false,\"disabled\":false,\"alias\":null,\"type\":\"phrase\",\"key\":\"log_type\",\"value\":\"SSHChannel session (0) on SSHService 'ssh-connection' on HoneyPotSSHTransport\",\"params\":{\"query\":\"SSHChannel session (0) on SSHService 'ssh-connection' on HoneyPotSSHTransport\",\"type\":\"phrase\"}},\"query\":{\"match\":{\"log_type\":{\"query\":\"SSHChannel session (0) on SSHService 'ssh-connection' on HoneyPotSSHTransport\",\"type\":\"phrase\"}}},\"$state\":{\"store\":\"appState\"}}],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
+      }
+    }
+  },
+  {
+    "_id": "825db660-6695-11e8-86d1-813a7571e879",
+    "_type": "visualization",
+    "_source": {
+      "title": "username-chart",
+      "visState": "{\"title\":\"username-chart\",\"type\":\"pie\",\"params\":{\"type\":\"pie\",\"addTooltip\":true,\"addLegend\":true,\"legendPosition\":\"right\",\"isDonut\":true,\"labels\":{\"show\":false,\"values\":true,\"last_level\":true,\"truncate\":100}},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"enabled\":true,\"type\":\"terms\",\"schema\":\"segment\",\"params\":{\"field\":\"username.keyword\",\"otherBucket\":false,\"otherBucketLabel\":\"Other\",\"missingBucket\":false,\"missingBucketLabel\":\"Missing\",\"size\":50,\"order\":\"desc\",\"orderBy\":\"1\"}}]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"fe99c6a0-69e8-11e8-a48a-ddf9af5af398\",\"filter\":[{\"meta\":{\"index\":\"259c18a0-6694-11e8-86d1-813a7571e879\",\"negate\":false,\"disabled\":false,\"alias\":null,\"type\":\"phrase\",\"key\":\"log_type\",\"value\":\"SSHService 'ssh-userauth' on HoneyPotSSHTransport\",\"params\":{\"query\":\"SSHService 'ssh-userauth' on HoneyPotSSHTransport\",\"type\":\"phrase\"}},\"query\":{\"match\":{\"log_type\":{\"query\":\"SSHService 'ssh-userauth' on HoneyPotSSHTransport\",\"type\":\"phrase\"}}},\"$state\":{\"store\":\"appState\"}}],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
+      }
+    }
+  },
+  {
+    "_id": "92e1cfd0-6ab4-11e8-a954-77104a0d51bf",
+    "_type": "visualization",
+    "_source": {
+      "title": "timestamp-chart",
+      "visState": "{\"title\":\"timestamp-chart\",\"type\":\"histogram\",\"params\":{\"type\":\"histogram\",\"grid\":{\"categoryLines\":false,\"style\":{\"color\":\"#eee\"}},\"categoryAxes\":[{\"id\":\"CategoryAxis-1\",\"type\":\"category\",\"position\":\"bottom\",\"show\":true,\"style\":{},\"scale\":{\"type\":\"linear\"},\"labels\":{\"show\":true,\"truncate\":100},\"title\":{}}],\"valueAxes\":[{\"id\":\"ValueAxis-1\",\"name\":\"LeftAxis-1\",\"type\":\"value\",\"position\":\"left\",\"show\":true,\"style\":{},\"scale\":{\"type\":\"linear\",\"mode\":\"normal\"},\"labels\":{\"show\":true,\"rotate\":0,\"filter\":false,\"truncate\":100},\"title\":{\"text\":\"Count\"}}],\"seriesParams\":[{\"show\":\"true\",\"type\":\"histogram\",\"mode\":\"stacked\",\"data\":{\"label\":\"Count\",\"id\":\"1\"},\"valueAxis\":\"ValueAxis-1\",\"drawLinesBetweenPoints\":true,\"showCircles\":true}],\"addTooltip\":true,\"addLegend\":true,\"legendPosition\":\"right\",\"times\":[],\"addTimeMarker\":false},\"aggs\":[{\"id\":\"1\",\"enabled\":true,\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"enabled\":true,\"type\":\"date_histogram\",\"schema\":\"segment\",\"params\":{\"field\":\"@timestamp\",\"interval\":\"auto\",\"customInterval\":\"2h\",\"min_doc_count\":1,\"extended_bounds\":{}}}]}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"fe99c6a0-69e8-11e8-a48a-ddf9af5af398\",\"filter\":[],\"query\":{\"query\":\"\",\"language\":\"lucene\"}}"
+      }
+    }
+  }
+]

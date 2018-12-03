@@ -1,0 +1,21 @@
+# Docker Logspout Syslog
+DOCKER_SYSLOG %{SYSLOG5424PRI}%{NONNEGINT:syslog5424_ver} +(?:%{TIMESTAMP_ISO8601:syslog5424_ts}|-) +(?:%{WORD:docker_id}|-) +(?:%{WORD:docker_name}|-) +(?:%{WORD:syslog5424_proc}|-) +(?:%{WORD:syslog5424_msgid}|-) +(?:%{SYSLOG5424SD:syslog5424_sd}|-|)
+
+
+# LOG_TYPE: cowrie.ssh.factory.CowrieSSHFactory
+# EX:
+#   2018-05-31T16:32:32+0000 [cowrie.ssh.factory.CowrieSSHFactory] New connection: 192.168.0.2:37226 (172.17.0.4:2222) [session: b22b416a2d74]
+COWRIE_SSH_NEW_CONNECTION %{TIMESTAMP_ISO8601:timestamp} \[%{DATA:log_type}\] New connection: %{IPV4:ip}:%{POSINT:port} \(%{IPV4:host_ip}:%{POSINT:host_port}\) \[session: %{DATA:session_id}\]
+
+
+# LOG_TYPE: SSHService 'ssh-userauth' on HoneyPotSSHTransport
+# EX:
+#   2018-05-31T16:44:54+0000 [SSHService 'ssh-userauth' on HoneyPotSSHTransport,0,192.168.0.2] login attempt [root/p4s5W0rd] succeeded
+COWRIE_SSH_USERAUTH %{TIMESTAMP_ISO8601:timestamp} \[%{DATA:log_type},%{INT:session_count},%{IPV4:ip}\] login attempt \[%{USERNAME:username}/%{DATA:password}\] %{WORD:status}
+
+
+# LOG_TYPE: SSHChannel session (0) on SSHService 'ssh-connection' on HoneyPotSSHTransport
+# EX:
+#   2018-05-31T16:46:42+0000 [SSHChannel session (0) on SSHService 'ssh-connection' on HoneyPotSSHTransport,0,192.168.0.2] Command found: ls -lh
+#   2018-05-31T16:46:42+0000 [SSHChannel session (0) on SSHService 'ssh-connection' on HoneyPotSSHTransport,0,192.168.0.2] Command not found: nmap
+COWRIE_SSH_CMD %{TIMESTAMP_ISO8601:timestamp} \[%{DATA:log_type},%{INT:session_count},%{IPV4:ip}\] Command %{GREEDYDATA:cmd_status}: %{GREEDYDATA:cmd}
